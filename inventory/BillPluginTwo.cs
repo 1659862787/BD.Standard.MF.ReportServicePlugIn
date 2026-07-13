@@ -16,7 +16,7 @@ using System.ComponentModel;
 using System.Text;
 using System.Xml;
 
-namespace BD.Standard.KY.ReportServicePlugIn
+namespace BD.Standard.MF.ReportServicePlugIn
 {
     [Kingdee.BOS.Util.HotUpdate]
     [Description("库龄分析明细二开表单插件")]

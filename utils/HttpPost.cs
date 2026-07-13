@@ -1,7 +1,7 @@
 ﻿using Kingdee.BOS.WebApi.Client;
 using Newtonsoft.Json.Linq;
 
-namespace BD.Standard.KY.ReportServicePlugIn
+namespace BD.Standard.MF.ReportServicePlugIn
 {
     public class HttpPost
     {

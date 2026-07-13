@@ -3,12 +3,9 @@ using Kingdee.BOS;
 using Kingdee.BOS.App.Data;
 using Kingdee.BOS.Contracts;
 using Kingdee.BOS.Contracts.Report;
-using Kingdee.BOS.Core.Metadata.BusinessService;
-using Kingdee.BOS.Core.Metadata.Util;
 using Kingdee.BOS.Core.Report;
 using Kingdee.BOS.Orm.DataEntity;
 using Kingdee.BOS.Util;
-using Kingdee.K3.SCM.App.Stock.Report.ClassStockDetail;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -16,7 +13,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 
-namespace BD.Standard.KY.ReportServicePlugIn
+namespace BD.Standard.MF.ReportServicePlugIn
 {
     [Kingdee.BOS.Util.HotUpdate]
     [Description("库存账龄报表二开报表服务插件")]
@@ -38,7 +35,7 @@ namespace BD.Standard.KY.ReportServicePlugIn
         private Boolean flag = true;
         private List<string> FMoBillno = new List<string>();
 
-        private static readonly string Logpath = @"D:\KYLog\reportLog\" + DateTime.Now.ToString("yyyyMM");
+        private static readonly string Logpath = @"D:\MiFeiLog\reportLog\" + DateTime.Now.ToString("yyyyMM");
 
         #region 设置报表
         public override void Initialize()
@@ -91,7 +88,7 @@ namespace BD.Standard.KY.ReportServicePlugIn
         private Dictionary<string, string> keyValues = null;
 
         string[] Field = { "FMATERIALID1", "FMATERIALID", "FMATERIALNUMBER", "FStockOrgId", "FMaterialTypeName", "FSTOCKID", "FSTOCKSTATUSNAME", "FStockLocId", "FSTOCKLOC", "FLOTNO", "FBASEUNITID", "FUnitID", "Fbilldatemin", "Fagedays", "Fbaseqty", "Fqty", "Famount" };
-        string[] FieldType = { "numeric", "numeric", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "DECIMAL(23,10)", "DECIMAL(23,10)", "DECIMAL(23,10)" };
+        string[] FieldType = { "numeric", "numeric", "varchar(255)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "DECIMAL(23,10)", "DECIMAL(23,10)", "DECIMAL(23,10)" };
 
 
         #region 创建临时表

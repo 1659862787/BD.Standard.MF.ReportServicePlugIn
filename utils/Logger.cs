@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace BD.Standard.KY.ReportServicePlugIn
+namespace BD.Standard.MF.ReportServicePlugIn
 {
 
     class Logger
