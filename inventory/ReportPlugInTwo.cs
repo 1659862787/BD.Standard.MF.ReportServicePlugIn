@@ -3,9 +3,12 @@ using Kingdee.BOS;
 using Kingdee.BOS.App.Data;
 using Kingdee.BOS.Contracts;
 using Kingdee.BOS.Contracts.Report;
+using Kingdee.BOS.Core.Metadata.BusinessService;
+using Kingdee.BOS.Core.Metadata.Util;
 using Kingdee.BOS.Core.Report;
 using Kingdee.BOS.Orm.DataEntity;
 using Kingdee.BOS.Util;
+using Kingdee.K3.SCM.App.Stock.Report.ClassStockDetail;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -32,7 +35,6 @@ namespace BD.Standard.KY.ReportServicePlugIn
         private string F_UJED_MaterialWhere = "";
         private string F_UJED_StockWhere = "";
         private string F_UJED_LotWhere = "";
-        private Boolean Fisrework = true;
         private Boolean flag = true;
         private List<string> FMoBillno = new List<string>();
 
@@ -60,9 +62,9 @@ namespace BD.Standard.KY.ReportServicePlugIn
         public override List<SummaryField> GetSummaryColumnInfo(IRptParams filter)
         {
             var result = base.GetSummaryColumnInfo(filter);
-            result.Add(new SummaryField("Fsumfbaseqty", Kingdee.BOS.Core.Enums.BOSEnums.Enu_SummaryType.SUM));
-            result.Add(new SummaryField("Fsumfqty", Kingdee.BOS.Core.Enums.BOSEnums.Enu_SummaryType.SUM));
-            result.Add(new SummaryField("Fsumfamount", Kingdee.BOS.Core.Enums.BOSEnums.Enu_SummaryType.SUM));
+            result.Add(new SummaryField("Fbaseqty", Kingdee.BOS.Core.Enums.BOSEnums.Enu_SummaryType.SUM));
+            result.Add(new SummaryField("Fqty", Kingdee.BOS.Core.Enums.BOSEnums.Enu_SummaryType.SUM));
+            result.Add(new SummaryField("Famount", Kingdee.BOS.Core.Enums.BOSEnums.Enu_SummaryType.SUM));
             for (int i = 0; i<Field.Length; i++)
             {
 
@@ -88,8 +90,8 @@ namespace BD.Standard.KY.ReportServicePlugIn
 
         private Dictionary<string, string> keyValues = null;
 
-        string[] Field = { "FMATERIALID1", "FMATERIALID", "FMATERIALNUMBER", "FStockOrgId", "FMaterialTypeName", "FSTOCKID", "FSTOCKSTATUSID", "FStockLocId", "FSTOCKLOC", "FLOTNO","FOwnerType", "FOwner", "FKeeperType", "FKeeper", "FBASEUNITID", "FUnitID", "Fbilldatemin", "FDayDiff", "Fsumfbaseqty", "Fsumfqty", "Fsumfamount" };
-        string[] FieldType = { "numeric", "numeric", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "DECIMAL(23,10)", "DECIMAL(23,10)", "DECIMAL(23,10)" };
+        string[] Field = { "FMATERIALID1", "FMATERIALID", "FMATERIALNUMBER", "FStockOrgId", "FMaterialTypeName", "FSTOCKID", "FSTOCKSTATUSNAME", "FStockLocId", "FSTOCKLOC", "FLOTNO", "FBASEUNITID", "FUnitID", "Fbilldatemin", "Fagedays", "Fbaseqty", "Fqty", "Famount" };
+        string[] FieldType = { "numeric", "numeric", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "varchar(100)", "DECIMAL(23,10)", "DECIMAL(23,10)", "DECIMAL(23,10)" };
 
 
         #region 创建临时表
@@ -117,57 +119,63 @@ namespace BD.Standard.KY.ReportServicePlugIn
         #region  构建报表详细信息
         public void InventoryDetailSummarySql(string temp, IRptParams filter)
         {
-            string midtable = " KY_GetReportDataTable ";
+            string midtable = " MiFei_GetReportDataTable ";
             Logger logger1 = new Logger(Logpath, DateTime.Now.ToString("yyyy-MM-dd") + ".txt");
-            logger1.WriteLog("是否返工单：" + Fisrework.ToString());
-            if (Fisrework)
+
+            
+            StringBuilder where = new StringBuilder();
+            where.Append(" where 1=1 ");
+            if (!string.IsNullOrWhiteSpace(F_UJED_MaterialWhere))
             {
-                #region 返工入库上查
-                StringBuilder updateBuilder = new StringBuilder();
-                updateBuilder.AppendLine("/*dialect*/");
-                updateBuilder.AppendLine($" select FINSTOCKBILLNO  from  KY_GetReportDataTable where FINSTOCKFORMID='PRD_INSTOCK'");
-                DynamicObjectCollection updatedycon = DBUtils.ExecuteDynamicObject(this.Context, updateBuilder.ToString());
-
-                
-                logger1.WriteLog("返工单开始查询：" + updatedycon.Count);
-
-                if (updatedycon.Count > 0)
-                {
-                    
-                    foreach (DynamicObject itme in updatedycon)
-                    {
-                        int counts = 0;
-                        flag = true;
-                        string finstockbillno = itme["FINSTOCKBILLNO"].ToString();
-
-                        SelectInStockDate(counts, finstockbillno, finstockbillno);
-                    }
-                }
-                #endregion
+                where.AppendLine($" and FMATERIALNUMBER in {F_UJED_MaterialWhere}");
             }
-            else
+            if (!string.IsNullOrWhiteSpace(F_UJED_StockWhere))
             {
-                //排除返工单,不上查
-                midtable = " KY_GetReportDataTable ";
-                //midtable = " KY_GetReportDataTable where FINSTOCKBILLNO not in (select FINSTOCKBILLNO  from  KY_GetReportDataTable x left join  T_PRD_INSTOCK a on a.fbillno=x.FINSTOCKBILLNO inner join T_PRD_INSTOCKENTRY b on a.fid=b.fid left join T_PRD_MO m on m.fbillno=b.FMOBILLNO   where FINSTOCKFORMID='PRD_INSTOCK' and m.FBILLTYPE='0e74146732c24bec90178b6fe16a2d1c')";
+                where.AppendLine($" and FStockNumber in {F_UJED_StockWhere}");
+            }
+            if (!string.IsNullOrWhiteSpace(F_UJED_LotWhere))
+            {
+                where.AppendLine($" and FLOTNO in {F_UJED_LotWhere}");
             }
 
-            StringBuilder InsertBuilder1 = new StringBuilder();
-            InsertBuilder1.AppendLine("/*dialect*/");
-            InsertBuilder1.AppendLine($" update a set a.FAGEDAYS=DATEDIFF(DAY, CONVERT(DATE, 入库日期),  CONVERT(DATE,'{FQueryDate}'))+{CurDateIsOne},FINSTOCKDATE=入库日期,FBILLDATE=入库日期 from KY_GetReportDataTable a inner join  instock1 b on  FInstockBillNo=b.入库单号 where  FMATERIALNUMBER=编码  and FLOTNO=b.原批号 ");
+
+
+
+        StringBuilder InsertBuilder1 = new StringBuilder();
+            StringBuilder InsertBuilder2 = new StringBuilder();
+
+            //FCurDateIsOne
+            InsertBuilder1.Append("/*dialect*/");
+            InsertBuilder1.AppendLine($"IF EXISTS (SELECT 1  FROM sys.columns WHERE object_id = OBJECT_ID('{midtable}')  AND name = 'FLOTNO')");
+            InsertBuilder1.AppendLine($"BEGIN");
+            InsertBuilder1.AppendLine($"UPDATE {midtable} SET FAGEDAYS =");
+            //检查是否为有效的 yyyy-mm-dd 格式 
+            InsertBuilder1.AppendLine($"CASE WHEN ISDATE(SUBSTRING(FLOTNO, 1, 10)) = 1 AND SUBSTRING(FLOTNO, 1, 10) LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'");
+            InsertBuilder1.AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, 1, 10), 120), GETDATE())+{CurDateIsOne})");
+            //检查是否为有效的 yyyymmdd 格式 
+            InsertBuilder1.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, 1, 8)) = 1  AND SUBSTRING(FLOTNO, 1, 8) LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'");
+            InsertBuilder1.AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, 1, 8), 112), GETDATE())+{CurDateIsOne})");
+            //检查是否为有效的 yyyy-mm-dd 格式
+            InsertBuilder1.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10)) = 1 AND SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10) LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'");
+            InsertBuilder1  .AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10), 120), GETDATE())+{CurDateIsOne})");
+            //检查是否为有效的 yyyymmdd 格式 
+            InsertBuilder1.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8)) = 1 AND SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8) LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'");
+            InsertBuilder1.AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8), 112), GETDATE())+{CurDateIsOne})");
+            InsertBuilder1.AppendLine($"ELSE FAGEDAYS");
+            InsertBuilder1.AppendLine($"END");
+            InsertBuilder1.AppendLine($"END");
+
+            InsertBuilder1.AppendLine($"update t1 set t1.FOUTDATE=(SELECT MAX(t2.FOUTDATE) FROM MiFei_GetReportDataTable AS t2 WHERE t2.FMATERIALID = t1.FMATERIALID AND t2.FMATERIALNUMBER = t1.FMATERIALNUMBER AND t2.FMaterialTypeName = t1.FMaterialTypeName AND t2.FStockOrgId = t1.FStockOrgId AND t2.FSTOCKID = t1.FSTOCKID AND t2.FSTOCKSTATUSNAME = t1.FSTOCKSTATUSNAME AND t2.FStockLocId = t1.FStockLocId AND t2.FSTOCKLOC = t1.FSTOCKLOC AND t2.FLOTNO = t1.FLOTNO AND t2.FBASEUNITID = t1.FBASEUNITID AND t2.FUnitID = t1.FUnitID AND t2.fidentityid <> t1.fidentityid) FROM MiFei_GetReportDataTable AS t1 WHERE t1.FBILLTYPENAME LIKE '委外%' ");
 
             StringBuilder newcol = new StringBuilder();
-            InsertBuilder1.AppendLine($"select a.FMATERIALID as FMATERIALID1,* from ( select FMATERIALID,FMATERIALNUMBER,FMATERIALGROUPNAME,FMaterialTypeName,FStockOrgId,FSTOCKID,FSTOCKSTATUSID,FStockLocId,FSTOCKLOC,FLOTNO,FOwnerTypeId,FOWNERID,FKEEPERTYPEID,FKEEPERID,FBASEUNITID,FUnitID,CONVERT(date, FINSTOCKDATE) Fbilldatemin,DATEDIFF(DAY, CONVERT(date, FINSTOCKDATE),'{FQueryDate}')+{CurDateIsOne} AS FDayDiff" +
-                $",case when FOWNERTYPEID='BD_OwnerOrg' then '业务组织'    when FOWNERTYPEID='BD_Customer' then '客户'    when FOWNERTYPEID='BD_Supplier' then '供应商' end FOwnerType ,case when FOWNERTYPEID='BD_OwnerOrg' then (select top 1 FNAME from T_ORG_ORGANIZATIONS_L where FORGID=FOWNERID and FLOCALEID=2052)    when FOWNERTYPEID='BD_Customer' then (select top 1 FNAME from T_BD_CUSTOMER_L where FCUSTID=FOWNERID and FLOCALEID=2052)    when FOWNERTYPEID='BD_Supplier' then (select top 1 FNAME from T_BD_SUPPLIER_L where FSUPPLIERID=FOWNERID and FLOCALEID=2052) end FOwner" +
-                $",case when FKEEPERTYPEID='BD_KeeperOrg' then '业务组织'    when FKEEPERTYPEID='BD_Customer' then '客户'    when FKEEPERTYPEID='BD_Supplier' then '供应商'end FKeeperType,case when FKEEPERTYPEID='BD_KeeperOrg' then (select top 1 FNAME from T_ORG_ORGANIZATIONS_L where FORGID=FKEEPERID and FLOCALEID=2052)    when FKEEPERTYPEID='BD_Customer' then (select top 1 FNAME from T_BD_CUSTOMER_L where FCUSTID=FKEEPERID and FLOCALEID=2052)    when FKEEPERTYPEID='BD_Supplier' then (select top 1 FNAME from T_BD_SUPPLIER_L where FSUPPLIERID=FKEEPERID and FLOCALEID=2052) end FKeeper" +
-                $",sum( CONVERT(decimal(18,6), fbaseqty)) Fsumfbaseqty,sum( CONVERT(decimal(18,6), fqty)) Fsumfqty,sum( CONVERT(decimal(18,6), famount)) Fsumfamount from   {midtable}  group by FMATERIALID,FMATERIALNUMBER,FMATERIALGROUPNAME,FMaterialTypeName,FStockOrgId,FSTOCKID,FSTOCKSTATUSID,FStockLocId,FSTOCKLOC,FLOTNO,FOwnerTypeId,FOWNERID,FKEEPERTYPEID,FKEEPERID,FBASEUNITID,FUnitID,FINSTOCKDATE ) a ");
+            InsertBuilder2.AppendLine($" select FMATERIALID as FMATERIALID1 ,FMATERIALID,FMATERIALNUMBER,FMaterialTypeName,FStockOrgId,FSTOCKID,FStockNumber,FSTOCKSTATUSNAME,FStockLocId,FSTOCKLOC,FLOTNO,FBASEUNITID,FUnitID,FOUTDATE as Fbilldatemin,fagedays+{CurDateIsOne} AS fagedays,sum( CONVERT(decimal(18,6), fbaseqty)) Fbaseqty ,sum( CONVERT(decimal(18,6), fqty)) Fqty ,sum( CONVERT(decimal(18,6), famount)) Famount  from    MiFei_GetReportDataTable {where}  group by FMATERIALID,FMATERIALNUMBER,FMaterialTypeName,FStockOrgId,FSTOCKID,FStockNumber,FSTOCKSTATUSNAME,FStockLocId,FSTOCKLOC,FLOTNO,FBASEUNITID,FUnitID,FOUTDATE,fagedays  ");
 
             //动态列处理
             DynamicObject dyobject = filter.FilterParameter.CustomFilter;
             if (Convert.ToString(dyobject["FRadioGroup"]).Equals("A"))
             {
-                StringBuilder InsertBuilder2 = new StringBuilder();
-                InsertBuilder2.AppendLine(" select * ");
+                StringBuilder InsertBuilder3 = new StringBuilder();
+                InsertBuilder3.AppendLine(" select * ");
 
 
                 DynamicObjectCollection InvAgeEntity = dyobject["InvAgeEntity"] as DynamicObjectCollection;
@@ -183,26 +191,19 @@ namespace BD.Standard.KY.ReportServicePlugIn
                     newcol.Append($",sum( CONVERT(decimal(18,6), {IntervalTxt}S)) as {IntervalTxt}S");
                     if (Convert.ToInt32(dynamic["IntervalDay"]) > 0)
                     {
-                        InsertBuilder2.AppendLine($" ,case when  CONVERT(int, fagedays)>={DownDay} AND  CONVERT(int, fagedays)<={UpperDay} then CONVERT(decimal(18,6), fbaseqty) else 0.0 end {IntervalTxt}B");
-                        InsertBuilder2.AppendLine($" ,case when  CONVERT(int, fagedays)>={DownDay} AND  CONVERT(int, fagedays)<={UpperDay} then CONVERT(decimal(18,6), fqty) else 0.0 end {IntervalTxt}S");
+                        InsertBuilder3.AppendLine($" ,case when  CONVERT(int, fagedays)>={DownDay} AND  CONVERT(int, fagedays)<={UpperDay} then CONVERT(decimal(18,6), fbaseqty) else 0.0 end {IntervalTxt}B");
+                        InsertBuilder3.AppendLine($" ,case when  CONVERT(int, fagedays)>={DownDay} AND  CONVERT(int, fagedays)<={UpperDay} then CONVERT(decimal(18,6), fqty) else 0.0 end {IntervalTxt}S");
                     }
                     else
                     {
-                        InsertBuilder2.AppendLine($" ,case when  CONVERT(int, fagedays)>={DownDay} then CONVERT(decimal(18,6), fbaseqty) else 0.0 end {IntervalTxt}B");
-                        InsertBuilder2.AppendLine($" ,case when  CONVERT(int, fagedays)>={DownDay} then CONVERT(decimal(18,6), fqty) else 0.0 end {IntervalTxt}S");
+                        InsertBuilder3.AppendLine($" ,case when  CONVERT(int, fagedays)>={DownDay} then CONVERT(decimal(18,6), fbaseqty) else 0.0 end {IntervalTxt}B");
+                        InsertBuilder3.AppendLine($" ,case when  CONVERT(int, fagedays)>={DownDay} then CONVERT(decimal(18,6), fqty) else 0.0 end {IntervalTxt}S");
                     }
                 }
-                InsertBuilder2.AppendLine("  from " + midtable);
-
-                StringBuilder InsertBuilder3 = new StringBuilder();
-                InsertBuilder3.AppendLine($" select  FMATERIALID,FMATERIALNUMBER,FMATERIALGROUPNAME,FMaterialTypeName,FStockOrgId,FSTOCKID,FSTOCKSTATUSID,FStockLocId,FSTOCKLOC,FLOTNO,FOwnerTypeId,FOWNERID,FKEEPERTYPEID,FKEEPERID,FBASEUNITID,FUnitID{newcol}" +
-                    $",case when FOWNERTYPEID='BD_OwnerOrg' then '业务组织'    when FOWNERTYPEID='BD_Customer' then '客户'    when FOWNERTYPEID='BD_Supplier' then '供应商' end FOwnerType ,case when FOWNERTYPEID='BD_OwnerOrg' then (select top 1 FNAME from T_ORG_ORGANIZATIONS_L where FORGID=FOWNERID and FLOCALEID=2052)    when FOWNERTYPEID='BD_Customer' then (select top 1 FNAME from T_BD_CUSTOMER_L where FCUSTID=FOWNERID and FLOCALEID=2052)    when FOWNERTYPEID='BD_Supplier' then (select top 1 FNAME from T_BD_SUPPLIER_L where FSUPPLIERID=FOWNERID and FLOCALEID=2052) end FOwner" +
-                    $",case when FKEEPERTYPEID='BD_KeeperOrg' then '业务组织'    when FKEEPERTYPEID='BD_Customer' then '客户'    when FKEEPERTYPEID='BD_Supplier' then '供应商' end FKeeperType,case when FKEEPERTYPEID='BD_KeeperOrg' then (select top 1 FNAME from T_ORG_ORGANIZATIONS_L where FORGID=FKEEPERID and FLOCALEID=2052)    when FKEEPERTYPEID='BD_Customer' then (select top 1 FNAME from T_BD_CUSTOMER_L where FCUSTID=FKEEPERID and FLOCALEID=2052)    when FKEEPERTYPEID='BD_Supplier' then (select top 1 FNAME from T_BD_SUPPLIER_L where FSUPPLIERID=FKEEPERID and FLOCALEID=2052) end FKeeper" +
-                    $" from ({InsertBuilder2}  )   b1  group by FMATERIALID,FMATERIALNUMBER,FMATERIALGROUPNAME,FMaterialTypeName,FStockOrgId,FSTOCKID,FSTOCKSTATUSID,FStockLocId,FSTOCKLOC,FLOTNO,FOwnerTypeId,FOWNERID,FKEEPERTYPEID,FKEEPERID,FBASEUNITID,FUnitID ");
+                InsertBuilder3.AppendLine($"  from  ({InsertBuilder2}) A" );
+                InsertBuilder1.AppendLine(InsertBuilder3.ToString());
 
 
-                InsertBuilder1.AppendLine($" left join ({InsertBuilder3}) b ");
-                InsertBuilder1.AppendLine(" on a.FMATERIALID=b.FMATERIALID and a.FMATERIALNUMBER=b.FMATERIALNUMBER and a.FMATERIALGROUPNAME=b.FMATERIALGROUPNAME and a.FMaterialTypeName=b.FMaterialTypeName and a.FStockOrgId=b.FStockOrgId and a.FSTOCKID=b.FSTOCKID and a.FSTOCKSTATUSID=b.FSTOCKSTATUSID and a.FStockLocId=b.FStockLocId  and a.FSTOCKLOC=b.FSTOCKLOC  and a.FLOTNO=b.FLOTNO  and a.FOwnerTypeId=b.FOwnerTypeId and a.FOWNERID=b.FOWNERID and a.FKEEPERTYPEID=b.FKEEPERTYPEID and a.FKEEPERID=b.FKEEPERID and a.FBASEUNITID=b.FBASEUNITID and a.FUnitID=b.FUnitID ");
 
             }
 
@@ -237,6 +238,7 @@ namespace BD.Standard.KY.ReportServicePlugIn
                 InsertBuilder.Append("(");
                 for (int i = 0; i < Field.Length; i++)
                 {
+                   
                     var value = dyn[Field[i]];
                     if (i == 0)
                     {
@@ -257,45 +259,6 @@ namespace BD.Standard.KY.ReportServicePlugIn
         }
         #endregion
 
-        #region 返工入库逻辑
-        /// <summary>
-        /// 返工订单修改入库时间。反弓如库上查订单，订单下查领料，根据领料物料的维度匹配生产入库单。判断入库对应的订单类型是否返工，不是则返回此入库单日期，是则继续上查。
-        /// 
-        /// </summary>
-        /// <param name="counts"></param>
-        /// <param name="finstockbillno"></param>
-        private void SelectInStockDate(int counts,string finstockbillno1, string finstockbillno)
-        {
-            counts++;
-            string selectMotype = $"select top 1 FMOBILLNO,m.FBILLTYPE,a.FDATE from T_PRD_INSTOCK a inner join T_PRD_INSTOCKENTRY b on a.fid=b.fid left join T_PRD_MO m on m.fbillno=b.FMOBILLNO where a.FBILLNO='{finstockbillno1}'";
-            DynamicObjectCollection motype = DBUtils.ExecuteDynamicObject(this.Context, selectMotype);
-            if (motype.Count > 0)
-            {
-                //返工生产订单
-                if (motype[0]["FBILLTYPE"].ToString().EqualsIgnoreCase("0e74146732c24bec90178b6fe16a2d1c"))
-                {
-                    string FMOBILLNO = motype[0]["FMOBILLNO"].ToString();
-                    if (!FMoBillno.Contains(FMOBILLNO))
-                    {
-                        FMoBillno.Add(FMOBILLNO);
-                        string selectdata = $"select * from (\r\n select b.FMOBILLNO,d.FBILLNO,c1.fdate,a.FBILLNO aFBILLNO from T_PRD_PICKMTRL a inner join T_PRD_PICKMTRLDATA b on a.fid=b.fid  inner join T_PRD_INSTOCKENTRY c on c.FMATERIALID=b.FMATERIALID and c.FSTOCKID=b.FSTOCKID and c.FSTOCKLOCID=b.FSTOCKLOCID and c.FLOT=b.FLOT inner join T_PRD_INSTOCK c1 on c1.fid=c.FID inner join T_PRD_INSTOCK d on c.fid=d.FID  where b.FMOBILLNO='{FMOBILLNO}'\r\n union all  select b.FMOBILLNO,d.FBILLNO,c1.fdate,a.FBILLNO aFBILLNO from T_PRD_FEEDMTRL a  inner join T_PRD_FEEDMTRLDATA b on a.fid=b.fid  inner join T_PRD_INSTOCKENTRY c on c.FMATERIALID=b.FMATERIALID and c.FSTOCKID=b.FSTOCKID and c.FSTOCKLOCID=b.FSTOCKLOCID and c.FLOT=b.FLOT inner join T_PRD_INSTOCK c1 on c1.fid=c.FID  inner join T_PRD_INSTOCK d on c.fid=d.FID  where b.FMOBILLNO='{FMOBILLNO}' ) z order by fdate desc";
-                        DynamicObjectCollection selectdatas = DBUtils.ExecuteDynamicObject(this.Context, selectdata);
-                        if (selectdatas.Count > 0)
-                        {
-                            SelectInStockDate(counts, selectdatas[0]["FBILLNO"].ToString(), finstockbillno);
-                        }
-                    }   
-                }
-                else if (counts > 1 && flag)
-                {
-                    DBUtils.Execute(this.Context, $" update KY_GetReportDataTable set FINSTOCKDATE='{motype[0]["FDATE"].ToString()}' where FINSTOCKBILLNO='{finstockbillno}'");
-                    Logger logger = new Logger(Logpath, DateTime.Now.ToString("yyyy-MM-dd") + ".txt");
-                    logger.WriteLog("更新sql：" + $" update KY_GetReportDataTable set FINSTOCKDATE='{motype[0]["FDATE"].ToString()}' where FINSTOCKBILLNO='{finstockbillno}'");
-                    flag = false;
-                }
-            }
-        }
-        #endregion 返工入库逻辑
 
         #region  构建报表核心
         public override void BuilderReportSqlAndTempTable(IRptParams filter, string tableName)
@@ -310,7 +273,7 @@ namespace BD.Standard.KY.ReportServicePlugIn
             }
             else
             {
-                base.KSQL_SEQ = string.Format(this.KSQL_SEQ, "FMATERIALNUMBER desc");
+                base.KSQL_SEQ = string.Format(this.KSQL_SEQ, "FMATERIALID desc");
             }
             using (new SessionScope())
             {
@@ -323,25 +286,49 @@ namespace BD.Standard.KY.ReportServicePlugIn
                 tmpTableName = arrTableName[0];
                 DBUtils.ExecuteDynamicObject(this.Context, this.CreateMainTempSql(tmpTableName));
                 this.InventoryDetailSummarySql(tmpTableName, filter);
+
+                List<Kingdee.BOS.Core.CommonFilter.ColumnField> columnInfo = filter.FilterParameter.ColumnInfo;
+                StringBuilder selectField = new StringBuilder();
+
+                selectField.Append("FMATERIALID,");
+
+                Dictionary<string,  string> dictionary = new Dictionary<string, string>();
+                dictionary.Add("FBASEUNIT", "FBASEUNITID");
+                dictionary.Add("FUnit", "FUnitID");
+                dictionary.Add("FStockOrgName", "FStockOrgId");
+                dictionary.Add("FSTOCKNumber", "FSTOCKID");
+                dictionary.Add("FSTOCKName", "FSTOCKID");
+                //dictionary.Add("FSTOCKSTATUS", "FSTOCKSTATUSNAME");
+                foreach (var item in columnInfo)
+                {
+                    if (dictionary.ContainsKey(item.FieldName) && !selectField.ToString().Contains(dictionary[item.FieldName]))
+                    {
+                        selectField.Append(dictionary[item.FieldName] + ",");   
+                    }
+
+
+                    if (Field.Contains(item.FieldName)&& !selectField.ToString().Contains(item.FieldName))
+                    {
+                        selectField.Append(item.FieldName + ",");
+                    }
+                }
                 StringBuilder sql = new StringBuilder();
                 sql.AppendLine(" SELECT  ");
-                for (int i = 0; i < Field.Length; i++)
+                sql.AppendLine(selectField.ToString());
+                sql.AppendLine(" sum(Fbaseqty) Fbaseqty,sum(Fqty) Fqty,sum(Famount) Famount");
+                foreach (var keyValue in keyValues)
                 {
-                    if (i == Field.Length - 1)
-                    {
-                        sql.AppendLine(Field[i]);
-                    }
-                    else
-                    {
-                        sql.AppendLine(Field[i] + ",");
-                       
-                    }
+                    sql.AppendLine(string.Format(" ,sum({0}) {0} ", keyValue.Key));
                 }
                 sql.AppendFormat(" ,{0} ", base.KSQL_SEQ);
                 sql.AppendFormat(" INTO {0}  ", tableName);
                 sql.AppendFormat(" FROM {0}  ", tmpTableName);
-                //sql.AppendFormat(" order by {0}  ", filter.FilterParameter.SortString);
-
+                sql.AppendFormat(" WHERE 1=1   ");
+                if (!string.IsNullOrWhiteSpace(filter.FilterParameter.FilterString))
+                {
+                    sql.AppendFormat("  and {0}", filter.FilterParameter.FilterString);
+                }
+                sql.AppendFormat($"  group by {selectField.Remove(selectField.Length - 1, 1)} ");
 
 
                 DBUtils.Execute(this.Context, sql.ToString());
@@ -373,40 +360,23 @@ namespace BD.Standard.KY.ReportServicePlugIn
                         value = "存货类型";
                         break;
                     case "Fbilldatemin":
-                        value = "最早入库日期";
+                        value = "最新出库日期";
                         break;
-                    case "FDayDiff":
+                    case "Fagedays":
                         value = "库龄天数";
                         break;
-                    case "Fsumfbaseqty":
+                    case "Fbaseqty":
                         value = "数量(基本)";
                         break;
-                    case "Fsumfqty":
+                    case "Fqty":
                         value = "数量(库存)";
                         break;
-                    case "Fsumfamount":
+                    case "Famount":
                         value = "总金额";
-                        break;
-                    case "FOwnerType":
-                        value = "货主类型";
-                        break;
-                    case "FOwner":
-                        value = "货主";
-                        break;
-                    case "FKeeperType":
-                        value = "保管者类型";
-                        break;
-                    case "FKeeper":
-                        value = "保管者";
-                        break;
-                    case "FSTOCKLOC":
-                        value = "仓位值集";
                         break;
                     case "FLOTNO":
                         value = "批号";
                         break;
-
-
 
                     case "FMATERIALID":
                         value = "物料内码";
@@ -417,47 +387,47 @@ namespace BD.Standard.KY.ReportServicePlugIn
                     case "FSTOCKID":
                         value = "仓库内码";
                         break;
-                    case "FSTOCKSTATUSID":
-                        value = "库存状态内码";
+                    case "FSTOCKSTATUSNAME":
+                        value = "库存状态";
                         break;
                     case "FStockLocId":
                         value = "仓位内码";
                         continue;
+                    case "FSTOCKLOC":
+                        value = "仓位值集";
+                        continue;    
                     case "FBASEUNITID":
                         value = "基本单位内码";
                         break;
-                    case "FUNITID":
+                    case "FUnitID":
                         value = "库存单位内码";
                         break;
 
     
                 }
-                if (keyValues.TryGetValue(Field[i], out string value1))
-                {
-                    if (Field[i].Last().Equals('B'))
-                    {
-                        value = value1 + "&数量(基本)";
-                    }
-                    else if (Field[i].Last().Equals('S'))
-                    {
-                        value = value1 + "&数量(库存)";
-                    }
-                    header.AddChild(Field[i], new LocaleValue(value)).ColIndex = i + 20;
-                }
+                
 
                 //设置列与类型，日期bos处理
-                if (value.Contains("数量"))
+                if ((value.Contains("数量") && !value.Contains("&"))|| value.Contains("总金额"))
                 {
                     Kingdee.BOS.Core.List.ListHeader listHeader = header.AddChild(Field[i], new LocaleValue(value));
                     listHeader.ColIndex = i + 20;
                     listHeader.ColType = SqlStorageType.SqlNumeric;
 
                 }
-                else if (value.Contains("最早入库日期"))
+                else if (keyValues.TryGetValue(Field[i], out string value1))
                 {
+                    if (Field[i].EndsWith("B"))
+                    {
+                        value = value1 + "&数量(基本)";
+                    }
+                    else if (Field[i].EndsWith("S"))
+                    {
+                        value = value1 + "&数量(库存)";
+                    }
                     Kingdee.BOS.Core.List.ListHeader listHeader = header.AddChild(Field[i], new LocaleValue(value));
-                    listHeader.ColIndex = i + 20;
-                    listHeader.ColType = SqlStorageType.SqlSmalldatetime;
+                    listHeader.ColIndex = i + 40;
+                    listHeader.ColType = SqlStorageType.SqlNumeric;
                 }
                 else
                 {
@@ -621,12 +591,7 @@ namespace BD.Standard.KY.ReportServicePlugIn
 
                     }
                 }
-
-                Fisrework=Convert.ToBoolean(dyobject["Fisrework"]);
-
                 FQueryDate = dyobject["FQueryDate"].ToString();
-
-                
             }
         }
         #endregion
@@ -636,9 +601,9 @@ namespace BD.Standard.KY.ReportServicePlugIn
         {
             ReportTitles titles = new ReportTitles();
             //titles.AddTitle("F_UJED_StockOrg", F_UJED_StockOrg);
-            titles.AddTitle("F_UJED_MaterialRange", F_UJED_MaterialRange);
-            titles.AddTitle("F_UJED_StockRange", F_UJED_StockRange);
-            titles.AddTitle("F_UJED_LotRange", F_UJED_LotRange);
+            titles.AddTitle("FMaterialRange", F_UJED_MaterialRange);
+            titles.AddTitle("FStockRange", F_UJED_StockRange);
+            titles.AddTitle("FLotRange", F_UJED_LotRange);
 
             return titles;
         }

@@ -28,7 +28,7 @@ namespace BD.Standard.KY.ReportServicePlugIn
 
             ComboFieldEditor headComboEidtor = this.View.GetControl<ComboFieldEditor>("Fscheme");
             List<EnumItem> comboOptions = new List<EnumItem>();
-            string sql = "exec KY_ReportFscheme";
+            string sql = "exec MiFei_ReportFscheme";
             DynamicObjectCollection dy = DBUtils.ExecuteDynamicObject(this.Context, sql);
             if (dy != null && dy.Count > 0)
             {
@@ -37,11 +37,6 @@ namespace BD.Standard.KY.ReportServicePlugIn
                 foreach (DynamicObject item in dy)
                 {
                     comboOptions.Add(new EnumItem() { EnumId = Convert.ToString(count++), Value = item["FSCHEMEID"].ToString(), Caption = new LocaleValue(item["FSCHEMENAME"].ToString()) });
-
-
-
-
-
                 }
                 headComboEidtor.SetComboItems(comboOptions);
             }
@@ -60,10 +55,6 @@ namespace BD.Standard.KY.ReportServicePlugIn
                 string FQueryDate = dys[0]["FSPECIFYDATE"].ToString().Contains("0001-01-01") ? DateTime.Now.ToString() : dys[0]["FSPECIFYDATE"].ToString();
                 this.View.Model.SetValue("FQueryDate", FQueryDate);
             }
-            
-
-
-
             this.View.Model.SetValue("FRadioGroup", "A");
 
             InitAgeEntity();
@@ -112,40 +103,53 @@ namespace BD.Standard.KY.ReportServicePlugIn
                 string newValue = e.NewValue.ToString();
                 string sql = $"SELECT FSCHEME FROM T_BAS_FILTERSCHEME WHERE FSCHEMEID='{newValue}'";
                 DynamicObjectCollection dy = DBUtils.ExecuteDynamicObject(this.Context, sql);
-                string FSCHEME = dy[0]["FSCHEME"].ToString();
+                if (dy.Count > 0)
+                {
+                    string FSCHEME = dy[0]["FSCHEME"].ToString();
+                    JObject jObject = GetFilter(FSCHEME);
+                    string Filter = jObject["SchemeEntity"]["CustomFilterSetting"].ToString();
+                    JObject Filterjson = GetFilter(Filter);
+                    JObject DetailFilter = (JObject)Filterjson["InvAgeDetailFilter"];
+                    DynamicObjectCollection dys = DBUtils.ExecuteDynamicObject(this.Context, $"select FSPECIFYDATE from t_stk_invagetask where FSCHEMEID ={DetailFilter["SchemeId_Id"].ToString()}");
 
-                JObject jObject = GetFilter(FSCHEME);
-                string Filter = jObject["SchemeEntity"]["CustomFilterSetting"].ToString();
-                JObject Filterjson = GetFilter(Filter);
-                JObject DetailFilter = (JObject)Filterjson["InvAgeDetailFilter"];
+                    string FQueryDate = dys[0]["FSPECIFYDATE"].ToString().Contains("0001-01-01") ? DateTime.Now.ToString() : dys[0]["FSPECIFYDATE"].ToString();
 
+                    this.View.Model.SetValue("FQueryDate", FQueryDate);
 
-                DynamicObjectCollection dys = DBUtils.ExecuteDynamicObject(this.Context, $"select FSPECIFYDATE from t_stk_invagetask where FSCHEMEID ={DetailFilter["SchemeId_Id"].ToString()}");
-
-                string FQueryDate=dys[0]["FSPECIFYDATE"].ToString().Contains("0001-01-01") ? DateTime.Now.ToString() : dys[0]["FSPECIFYDATE"].ToString();
-
-                  this.View.Model.SetValue("FQueryDate", FQueryDate);
-
-                string FMaterialFrom = DetailFilter.TryGetValue("MaterialFrom_Id", out var MaterialFrom_Id) ? MaterialFrom_Id.ToString() : "0";
-                this.View.Model.SetValue("FMaterialFrom", FMaterialFrom);
-                string FMaterialTo = DetailFilter.TryGetValue("MaterialTo_Id", out var MaterialTo_Id) ? MaterialTo_Id.ToString() : "0";
-                this.View.Model.SetValue("FMaterialTo", FMaterialTo);
-                string FStockFrom = DetailFilter.TryGetValue("StockFrom_Id", out var StockFrom_Id) ? StockFrom_Id.ToString() : "0";
-                this.View.Model.SetValue("FStockFrom", FStockFrom);
-                string FStockTo = DetailFilter.TryGetValue("StockTo_Id", out var StockTo_Id) ? StockTo_Id.ToString() : "0";
-                this.View.Model.SetValue("FStockTo", FStockTo);
-                string FLotFrom = DetailFilter.TryGetValue("LotFrom_Id", out var LotFrom_Id) ? LotFrom_Id.ToString() : "0";
-                this.View.Model.SetValue("FLotFrom", FLotFrom);
-                string FLotTo = DetailFilter.TryGetValue("LotTo_Id", out var LotTo_Id) ? LotTo_Id.ToString() : "0";
-                this.View.Model.SetValue("FLotTo", FLotTo);
-                string FPageByOrg = DetailFilter.TryGetValue("PageByOrg", out var PageByOrg) ? PageByOrg.ToString() : "False";
-                this.View.Model.SetValue("FPageByOrg", FPageByOrg);
-                string FPageByOwner = DetailFilter.TryGetValue("PageByOwner", out var PageByOwner) ? PageByOwner.ToString() : "False";
-                this.View.Model.SetValue("FPageByOwner", FPageByOwner);
-                string FShowForbidMaterial = DetailFilter.TryGetValue("ShowForbidMaterial", out var ShowForbidMaterial) ? ShowForbidMaterial.ToString() : "False";
-                this.View.Model.SetValue("FShowForbidMaterial", FShowForbidMaterial);
-                string FCurDateIsOne = DetailFilter.TryGetValue("CurDateIsOne", out var CurDateIsOne) ? CurDateIsOne.ToString() : "False";
-                this.View.Model.SetValue("FCurDateIsOne", FCurDateIsOne);
+                    string FMaterialFrom = DetailFilter.TryGetValue("MaterialFrom_Id", out var MaterialFrom_Id) ? MaterialFrom_Id.ToString() : "0";
+                    this.View.Model.SetValue("FMaterialFrom", FMaterialFrom);
+                    string FMaterialTo = DetailFilter.TryGetValue("MaterialTo_Id", out var MaterialTo_Id) ? MaterialTo_Id.ToString() : "0";
+                    this.View.Model.SetValue("FMaterialTo", FMaterialTo);
+                    string FStockFrom = DetailFilter.TryGetValue("StockFrom_Id", out var StockFrom_Id) ? StockFrom_Id.ToString() : "0";
+                    this.View.Model.SetValue("FStockFrom", FStockFrom);
+                    string FStockTo = DetailFilter.TryGetValue("StockTo_Id", out var StockTo_Id) ? StockTo_Id.ToString() : "0";
+                    this.View.Model.SetValue("FStockTo", FStockTo);
+                    string FLotFrom = DetailFilter.TryGetValue("LotFrom_Id", out var LotFrom_Id) ? LotFrom_Id.ToString() : "0";
+                    this.View.Model.SetValue("FLotFrom", FLotFrom);
+                    string FLotTo = DetailFilter.TryGetValue("LotTo_Id", out var LotTo_Id) ? LotTo_Id.ToString() : "0";
+                    this.View.Model.SetValue("FLotTo", FLotTo);
+                    string FPageByOrg = DetailFilter.TryGetValue("PageByOrg", out var PageByOrg) ? PageByOrg.ToString() : "False";
+                    this.View.Model.SetValue("FPageByOrg", FPageByOrg);
+                    string FPageByOwner = DetailFilter.TryGetValue("PageByOwner", out var PageByOwner) ? PageByOwner.ToString() : "False";
+                    this.View.Model.SetValue("FPageByOwner", FPageByOwner);
+                    string FShowForbidMaterial = DetailFilter.TryGetValue("ShowForbidMaterial", out var ShowForbidMaterial) ? ShowForbidMaterial.ToString() : "False";
+                    this.View.Model.SetValue("FShowForbidMaterial", FShowForbidMaterial);
+                    string FCurDateIsOne = DetailFilter.TryGetValue("CurDateIsOne", out var CurDateIsOne) ? CurDateIsOne.ToString() : "False";
+                    this.View.Model.SetValue("FCurDateIsOne", FCurDateIsOne);
+                }
+                else
+                {
+                    this.View.Model.SetValue("FMaterialFrom", 0);
+                    this.View.Model.SetValue("FMaterialTo", 0);
+                    this.View.Model.SetValue("FStockFrom", 0);
+                    this.View.Model.SetValue("FStockTo", 0);
+                    this.View.Model.SetValue("FLotFrom", 0);
+                    this.View.Model.SetValue("FLotTo", 0);
+                    this.View.Model.SetValue("FPageByOrg", "False");
+                    this.View.Model.SetValue("FPageByOwner", "False");
+                    this.View.Model.SetValue("FShowForbidMaterial", "False");
+                    this.View.Model.SetValue("FCurDateIsOne", "False");
+                }
             }
         }
 
@@ -166,7 +170,7 @@ namespace BD.Standard.KY.ReportServicePlugIn
 
         public override void ButtonClick(ButtonClickEventArgs e)
         {
-            DynamicObjectCollection configs = DBUtils.ExecuteDynamicObject(this.Context, "exec KY_ReportConfig");
+            DynamicObjectCollection configs = DBUtils.ExecuteDynamicObject(this.Context, "exec Mifei_ReportConfig");
             Kingdee.BOS.WebApi.Client.K3CloudApiClient k3CloudApiClient = HttpPost.WebApiClent(configs[0]["url"].ToString(), configs[0]["dbid"].ToString(), configs[0]["name"].ToString(), configs[0]["pwd"].ToString());
             NewMethod(k3CloudApiClient, 0);
 
@@ -205,9 +209,9 @@ namespace BD.Standard.KY.ReportServicePlugIn
                     string key = property.Name;
                     string checkColumnSql = $@"
                             IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-                                           WHERE TABLE_NAME = 'KY_GetReportDataTable' AND COLUMN_NAME = '{key}')
+                                           WHERE TABLE_NAME = 'Mifei_GetReportDataTable' AND COLUMN_NAME = '{key}')
                             BEGIN
-                                ALTER TABLE KY_GetReportDataTable  ADD {key} NVARCHAR(255) NULL
+                                ALTER TABLE Mifei_GetReportDataTable  ADD {key} NVARCHAR(255) NULL
                             END";
                     DBUtils.Execute(this.Context, checkColumnSql);
                 }
@@ -217,7 +221,7 @@ namespace BD.Standard.KY.ReportServicePlugIn
                     StringBuilder sb = new StringBuilder();
                     StringBuilder column = new StringBuilder();
                     StringBuilder values = new StringBuilder();
-                    sb.Append(string.Format(@"/*dialect*/  insert into KY_GetReportDataTable "));
+                    sb.Append(string.Format(@"/*dialect*/  insert into Mifei_GetReportDataTable "));
                     values.Append("  values (");
                     column.Append("(");
                     foreach (JProperty property in data.Properties())
