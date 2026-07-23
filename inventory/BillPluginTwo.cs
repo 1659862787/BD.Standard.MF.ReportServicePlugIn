@@ -19,7 +19,7 @@ using System.Xml;
 namespace BD.Standard.MF.ReportServicePlugIn
 {
     [Kingdee.BOS.Util.HotUpdate]
-    [Description("库龄分析明细二开表单插件")]
+    [Description("库龄分析汇总过滤表单插件")]
     public class BillPluginTwo : AbstractDynamicFormPlugIn
     {
         public override void AfterBindData(EventArgs e)
@@ -54,6 +54,10 @@ namespace BD.Standard.MF.ReportServicePlugIn
                 DynamicObjectCollection dys = DBUtils.ExecuteDynamicObject(this.Context, $"select FSPECIFYDATE from t_stk_invagetask where FSCHEMEID ={DetailFilter["SchemeId_Id"].ToString()}");
                 string FQueryDate = dys[0]["FSPECIFYDATE"].ToString().Contains("0001-01-01") ? DateTime.Now.ToString() : dys[0]["FSPECIFYDATE"].ToString();
                 this.View.Model.SetValue("FQueryDate", FQueryDate);
+
+                string QueryDate = DetailFilter["QueryDate"].ToString();
+                FSCHEME= FSCHEME.Replace(QueryDate, DateTime.Parse(FQueryDate).ToString("yyyy-MM-dd"));
+                DBUtils.Execute(this.Context, $"UPDATE T_BAS_FILTERSCHEME SET FSCHEME = '{FSCHEME}' WHERE FSCHEMEID = '{Fscheme}'");
             }
             this.View.Model.SetValue("FRadioGroup", "A");
 

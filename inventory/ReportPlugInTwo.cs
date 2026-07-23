@@ -16,7 +16,7 @@ using System.Text;
 namespace BD.Standard.MF.ReportServicePlugIn
 {
     [Kingdee.BOS.Util.HotUpdate]
-    [Description("库存账龄报表二开报表服务插件")]
+    [Description("库存分析汇总(批号调整)报表服务插件")]
     public class ReportPlugInTwo : SysReportBaseService
     {
         //当天入库的账龄按1天计算
@@ -118,8 +118,9 @@ namespace BD.Standard.MF.ReportServicePlugIn
         {
             string midtable = " MiFei_GetReportDataTable ";
             Logger logger1 = new Logger(Logpath, DateTime.Now.ToString("yyyy-MM-dd") + ".txt");
+            FQueryDate = DateTime.Parse(FQueryDate).ToString("yyyy-MM-dd");
 
-            
+
             StringBuilder where = new StringBuilder();
             where.Append(" where 1=1 ");
             if (!string.IsNullOrWhiteSpace(F_UJED_MaterialWhere))
@@ -135,32 +136,32 @@ namespace BD.Standard.MF.ReportServicePlugIn
                 where.AppendLine($" and FLOTNO in {F_UJED_LotWhere}");
             }
 
-
-
-
-        StringBuilder InsertBuilder1 = new StringBuilder();
+            StringBuilder InsertBuilder1 = new StringBuilder();
             StringBuilder InsertBuilder2 = new StringBuilder();
 
             //FCurDateIsOne
             InsertBuilder1.Append("/*dialect*/");
-            InsertBuilder1.AppendLine($"IF EXISTS (SELECT 1  FROM sys.columns WHERE object_id = OBJECT_ID('{midtable}')  AND name = 'FLOTNO')");
-            InsertBuilder1.AppendLine($"BEGIN");
-            InsertBuilder1.AppendLine($"UPDATE {midtable} SET FAGEDAYS =");
-            //检查是否为有效的 yyyy-mm-dd 格式 
-            InsertBuilder1.AppendLine($"CASE WHEN ISDATE(SUBSTRING(FLOTNO, 1, 10)) = 1 AND SUBSTRING(FLOTNO, 1, 10) LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'");
-            InsertBuilder1.AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, 1, 10), 120), GETDATE())+{CurDateIsOne})");
-            //检查是否为有效的 yyyymmdd 格式 
-            InsertBuilder1.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, 1, 8)) = 1  AND SUBSTRING(FLOTNO, 1, 8) LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'");
-            InsertBuilder1.AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, 1, 8), 112), GETDATE())+{CurDateIsOne})");
-            //检查是否为有效的 yyyy-mm-dd 格式
-            InsertBuilder1.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10)) = 1 AND SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10) LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'");
-            InsertBuilder1  .AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10), 120), GETDATE())+{CurDateIsOne})");
-            //检查是否为有效的 yyyymmdd 格式 
-            InsertBuilder1.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8)) = 1 AND SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8) LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'");
-            InsertBuilder1.AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8), 112), GETDATE())+{CurDateIsOne})");
-            InsertBuilder1.AppendLine($"ELSE FAGEDAYS");
-            InsertBuilder1.AppendLine($"END");
-            InsertBuilder1.AppendLine($"END");
+
+            #region 对应库龄明细报表已经做了更新库龄
+            //InsertBuilder1.AppendLine($"IF EXISTS (SELECT 1  FROM sys.columns WHERE object_id = OBJECT_ID('{midtable}')  AND name = 'FLOTNO')");
+            //InsertBuilder1.AppendLine($"BEGIN");
+            //InsertBuilder1.AppendLine($"UPDATE {midtable} SET FAGEDAYS =");
+            ////检查是否为有效的 yyyy-mm-dd 格式 
+            //InsertBuilder1.AppendLine($"CASE WHEN ISDATE(SUBSTRING(FLOTNO, 1, 10)) = 1 AND SUBSTRING(FLOTNO, 1, 10) LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'");
+            //InsertBuilder1.AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, 1, 10), 120), '{FQueryDate}')+{CurDateIsOne})");
+            ////检查是否为有效的 yyyymmdd 格式 
+            //InsertBuilder1.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, 1, 8)) = 1  AND SUBSTRING(FLOTNO, 1, 8) LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'");
+            //InsertBuilder1.AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, 1, 8), 112), '{FQueryDate}')+{CurDateIsOne})");
+            ////检查是否为有效的 yyyy-mm-dd 格式
+            //InsertBuilder1.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10)) = 1 AND SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10) LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'");
+            //InsertBuilder1  .AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10), 120), '{FQueryDate}')+{CurDateIsOne})");
+            ////检查是否为有效的 yyyymmdd 格式 
+            //InsertBuilder1.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8)) = 1 AND SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8) LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'");
+            //InsertBuilder1.AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8), 112), '{FQueryDate}')+{CurDateIsOne})");
+            //InsertBuilder1.AppendLine($"ELSE FAGEDAYS");
+            //InsertBuilder1.AppendLine($"END");
+            //InsertBuilder1.AppendLine($"END");
+            #endregion 对应库龄明细报表已经做了更新库龄
 
             InsertBuilder1.AppendLine($"update t1 set t1.FOUTDATE=(SELECT MAX(t2.FOUTDATE) FROM MiFei_GetReportDataTable AS t2 WHERE t2.FMATERIALID = t1.FMATERIALID AND t2.FMATERIALNUMBER = t1.FMATERIALNUMBER AND t2.FMaterialTypeName = t1.FMaterialTypeName AND t2.FStockOrgId = t1.FStockOrgId AND t2.FSTOCKID = t1.FSTOCKID AND t2.FSTOCKSTATUSNAME = t1.FSTOCKSTATUSNAME AND t2.FStockLocId = t1.FStockLocId AND t2.FSTOCKLOC = t1.FSTOCKLOC AND t2.FLOTNO = t1.FLOTNO AND t2.FBASEUNITID = t1.FBASEUNITID AND t2.FUnitID = t1.FUnitID AND t2.fidentityid <> t1.fidentityid) FROM MiFei_GetReportDataTable AS t1 WHERE t1.FBILLTYPENAME LIKE '委外%' ");
 
@@ -199,9 +200,10 @@ namespace BD.Standard.MF.ReportServicePlugIn
                 }
                 InsertBuilder3.AppendLine($"  from  ({InsertBuilder2}) A" );
                 InsertBuilder1.AppendLine(InsertBuilder3.ToString());
-
-
-
+            }
+            else
+            {
+                InsertBuilder1.AppendLine(InsertBuilder2.ToString());
             }
 
             Logger logger = new Logger(Logpath, DateTime.Now.ToString("yyyy-MM-dd") + ".txt");
