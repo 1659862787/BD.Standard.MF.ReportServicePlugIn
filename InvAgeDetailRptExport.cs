@@ -30,23 +30,23 @@ namespace BD.Standard.MF.ReportServicePlugIn
             stringBuilder.AppendLine($"BEGIN");
             stringBuilder.AppendLine($"EXEC('");
             stringBuilder.AppendLine($"UPDATE {tableName} SET FAGEDAYS =");
-            //检查是否为有效的 yyyy-mm-dd 格式 
-            stringBuilder.AppendLine($"CASE WHEN ISDATE(SUBSTRING(FLOTNO, 1, 10)) = 1 AND SUBSTRING(FLOTNO, 1, 10) LIKE ''[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]''");
+            //检查是否为有效的 yyyy-mm-dd 格式   FInstockDate
+            stringBuilder.AppendLine($"CASE WHEN ISDATE(SUBSTRING(FLOTNO, 1, 10)) = 1 AND SUBSTRING(FLOTNO, 1, 10) LIKE ''[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'' and CONVERT(date, SUBSTRING(FLOTNO, 1, 10), 120)<CONVERT(date,''{QueryDate}'', 120) ");
             stringBuilder.AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, 1, 10), 120),''{QueryDate}'')+{day})");
             //检查是否为有效的 yyyymmdd 格式 
-            stringBuilder.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, 1, 8)) = 1  AND SUBSTRING(FLOTNO, 1, 8) LIKE ''[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]''");
+            stringBuilder.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, 1, 8)) = 1  AND SUBSTRING(FLOTNO, 1, 8) LIKE ''[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'' and CONVERT(date, SUBSTRING(FLOTNO, 1, 8), 112)<CONVERT(date,''{QueryDate}'', 120) ");
             stringBuilder.AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, 1, 8), 112), ''{QueryDate}'')+{day})");
             //检查是否为有效的 yyyy-mm-dd 格式
-            stringBuilder.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10)) = 1 AND SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10) LIKE ''[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]''");
+            stringBuilder.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10)) = 1 AND SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10) LIKE ''[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'' and CONVERT(date, SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10), 120)<CONVERT(date,''{QueryDate}'', 120) ");
             stringBuilder.AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, LEN(FLOTNO) -9, 10), 120), ''{QueryDate}'')+{day})");
             //检查是否为有效的 yyyymmdd 格式 
-            stringBuilder.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8)) = 1 AND SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8) LIKE ''[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]''");
+            stringBuilder.AppendLine($"WHEN ISDATE(SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8)) = 1 AND SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8) LIKE ''[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'' and CONVERT(date, SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8), 112)<CONVERT(date,''{QueryDate}'', 120) ");
             stringBuilder.AppendLine($"THEN CONVERT(nvarchar, DATEDIFF(day, CONVERT(date, SUBSTRING(FLOTNO, LEN(FLOTNO) -7, 8), 112), ''{QueryDate}'')+{day})");
             stringBuilder.AppendLine($"ELSE FAGEDAYS");
             stringBuilder.AppendLine($"END");
             stringBuilder.AppendLine($"');");
             stringBuilder.AppendLine($"END");
-            stringBuilder.AppendLine($"delete from {tableName} where FAGEDAYS<=0");
+            //stringBuilder.AppendLine($"delete from {tableName} where FAGEDAYS<=0");
             DBUtils.Execute(this.Context, stringBuilder.ToString());
 
 
