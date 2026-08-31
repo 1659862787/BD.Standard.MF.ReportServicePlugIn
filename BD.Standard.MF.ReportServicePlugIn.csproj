@@ -118,6 +118,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="utils\HttpPost.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="README.md" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
