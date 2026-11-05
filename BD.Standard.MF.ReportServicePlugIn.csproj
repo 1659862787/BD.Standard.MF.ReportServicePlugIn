@@ -7,8 +7,8 @@
     <ProjectGuid>{A064258F-E21A-4C4E-9AE0-E990C1E75603}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>BD.Standard.MF.ReportServicePlugIn4</RootNamespace>
-    <AssemblyName>BD.Standard.MF.ReportServicePlugIn4</AssemblyName>
+    <RootNamespace>BD.Standard.MF.ReportServicePlugIn17</RootNamespace>
+    <AssemblyName>BD.Standard.MF.ReportServicePlugIn17</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -111,6 +111,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="InOutStockDetailServiceExport.cs" />
+    <Compile Include="InvAgeSummaryRptExport.cs" />
     <Compile Include="inventory\BillPluginTwo.cs" />
     <Compile Include="InvAgeDetailRptExport.cs" />
     <Compile Include="utils\Logger.cs" />
